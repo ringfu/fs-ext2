@@ -1,6 +1,6 @@
 {
     "files.associations": {
-        "dir.h": "c",
-        "creat.h": "c"
-    }
+       
+    },
+    "C_Cpp.errorSquiggles": "Enabled"
 }
