@@ -1,6 +1,5 @@
-// 文件系统结构体定义
-
 #include "datatype.h"
+// 文件系统结构体定义
 
 #define DIR_IS_TRUE 1 //磁盘状态
 #define DIR_IS_FALSE 0
@@ -17,6 +16,7 @@
 // 定义文件类型
 #define ORDINARY_FILE   1　 //普通文件
 #define DIR_FILE        2   //　目录文件
+
 // #define BLOCK_FILE      4   //
 // #define CHAR_FILE       8
 // #define SOCKET_FILE     16
@@ -48,7 +48,7 @@
 // 定义每一块的长度
 #define EVERY_BLOCK 1024
 // 文件系统的总块数
-#define BLOCKS_NUMBERS 1024
+#define BLOCKS_NUMBERS 1024 // 1024个 1k
 
 // 文件系统中第一个inode节点的位置
 #define FIRST_INODE_BLOCK 4
@@ -56,8 +56,8 @@
 // 文件系统的第一个数据块位置，从0开始编号
 #define FIRST_DATA_BLOCK 132
 
-// // 定义文件系统的总组数目
-// #define GROUP_NUMBER 8
+// // 定义文件系统的总组数目, 只设置一组，整个文件系统在一组内
+#define GROUP_NUMBER 1 
 // 定义每一组含有的块数
 #define BOLOCKS_OF_EVERY_GROUP 1024
 // 定义一个组的块位图和索引节点位图的大小
@@ -114,7 +114,7 @@ struct ext2_super_block
     char   s_last_mounted[64];      /* 最后一个安装点的路径名 */
 };
 
-// 组块描述符表项，总计占有32个字节大小
+// 组块描述符表项，总计占有32个字节大小 　？？？算出来只有２４字节
 struct ext2_group_desc
 {
 	__u32 bg_block_bitmap;	 	/* 组中块位图所在的块号 */
@@ -128,30 +128,31 @@ struct ext2_group_desc
 };
 
 // 不分组，一个文件系统在一个组块里
-// // 组块描述符表，总计占有1024个字节大小
-// struct ext2_group_desc_table
-// {
-//     struct ext2_group_desc every[GROUP_NUMBER];
-//     __u8 padding[GROUP_DESC_BLOCK_LENGTH - GROUP_NUMBER*GROUP_DESC_SIZE];
-// };
+// 组块描述符表，总计占有1024个字节大小
+struct ext2_group_desc_table
+{
+    struct ext2_group_desc GDT[GROUP_NUMBER];
+    __u8 padding[GROUP_DESC_BLOCK_LENGTH - GROUP_NUMBER*GROUP_DESC_SIZE];
+};
 
 // 块位图初始化结构体; block bitmap
 struct ext2_block_bitmap
 {
-    char first[16]; 
-    char second;
-    char third[111];
+    // char first[16]; 
+    // char second;
+    // char third[111];
+    __u8 block_bitmap[1024]; // 1024个data block
 };
 
 // inode位图
 struct ext2_inode_bitmap{
-    char imap[1024];
+    __u8 inode_bitmap[1024]; // 1024个inode 
 };
 
 
-// 外存索引节点，128个字节
+// 外存索引节点，128个字节; 共分配1024个inode
 struct ext2_inode {	
-    __u16 i_mode; 			/* 文件类型和访问权限 */
+    __u16 i_mode; 			        /* 文件类型和访问权限 */
     __u16 i_type;                   /* 文件类型*/
     __u16 i_mode;                   /* 文件访问权限*/
 	__u16 i_uid;				    /* 文件拥有者标识号*/
@@ -165,7 +166,8 @@ struct ext2_inode {
 	__u32 i_blocks; 			    /* 文件所占块数（每块以256字节计）*/
     __u32 i_flags;				    /* 打开文件的方式 */
     union
-    {  	　				            /* 特定操作系统的信息*/
+    {  				 
+                   /* 特定操作系统的信息*/
         __u32 i_block[EXT2_N_BLOCKS];   /* 指向数据块的指针数组 */
         __u32 i_version;	  	        /* 文件的版本号（用于 NFS） */
         __u32 i_file_acl; 		        /* 文件访问控制表（已不再使用） */
@@ -174,6 +176,12 @@ struct ext2_inode {
         __u32 i_faddr;  	            /* 片的地址 */
     };
     char padding[46];                   // 数据填充，为了对齐
+};
+
+// inode table
+struct ext2_inode_table
+{
+    struct ext2_inode inode_table[1024]; // 1024个inode 
 };
 
 // 目录项结构，256个字节
@@ -188,4 +196,4 @@ struct ext2_dir_entry_2 {
 
 
 
-#endif
+//#endif

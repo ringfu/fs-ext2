@@ -7,13 +7,15 @@
 
 int main(){
 	// define structure
-    ...
+    //...
 
     // init ext2 filesystem
     if(disk_alloc()){
         ext2fs_init();
+    
     }
 
+    return 0;
 }　
 
 /*
