@@ -54,7 +54,7 @@
 #define FIRST_INODE_BLOCK 4
 
 // 文件系统的第一个数据块位置，从0开始编号
-#define FIRST_DATA_BLOCK 132
+#define FIRST_DATA_BLOCK 132  // 1k(super block)+ 1k(GDT)+1k(block bitmap)+1k(inode bitmap)+128k(inode table,共1024个inode)
 
 // // 定义文件系统的总组数目, 只设置一组，整个文件系统在一组内
 #define GROUP_NUMBER 1 
@@ -67,7 +67,7 @@
 #define GROUP_DESC_SIZE 32
 
 //　定义每一个组的inode节点所占的块数
-#define EVERY_GROUP_INODE_BLOCK 16
+#define EVERY_GROUP_INODE_BLOCK 128 
 
 // 引导块数据结构
 // 超级块大小为1K
@@ -135,7 +135,7 @@ struct ext2_group_desc_table
     __u8 padding[GROUP_DESC_BLOCK_LENGTH - GROUP_NUMBER*GROUP_DESC_SIZE];
 };
 
-// 块位图初始化结构体; block bitmap
+// 块位图初始化结构体; block bitmap; 分配1024字节空间
 struct ext2_block_bitmap
 {
     // char first[16]; 

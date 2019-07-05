@@ -55,12 +55,14 @@ BOOL super_block_init(){
 
    
     ; //读写打开文件 /home/ringfu/ext2
-    if((disk = fopen(DISK,"rw"))==NULL){
+    if((disk = fopen(DISK,"r+"))==NULL){
         printf("open dir faild!\n");
         return DIR_IS_FALSE;
     }else{
-        fseek(disk,0,0);
-        if(fwrite(&super_block,sizeof(struct ext2_super_block),1,disk)){
+        fseek(disk,0,SEEK_SET);
+        if(fwrite(&super_block,sizeof(struct ext2_super_block),1,disk)){ 
+            /*  将内存中定义的super_blcok写到磁盘文件disk指向的区域
+            */
             fclose(disk);
             printf("super block initialized!\n");
             return DIR_IS_TRUE;
@@ -80,9 +82,9 @@ BOOL group_desc_table_init(){
     group_desc_table.GDT.bg_free_blocks_count = 892;      // TODO 组中空闲块数
     group_desc_table.GDT.bg_free_inodes_count = 1024;     // TODO 组中空闲节点数目
     group_desc_table.GDT.bg_used_dirs_count = 64;         // TODO 组中分配给目录的节点数目
-    group_desc_table.bg_pad = 0;                      // 填充，对齐到字
+    group_desc_table.bg_pad = 0                      // 填充，对齐到字
     
-    if((disk=fopen(DISK,"rw"))==NULL){
+    if((disk=fopen(DISK,"r+"))==NULL){
         printf("GDT initialize faild!\n");
         return IS_FALSE;
     }else
@@ -103,11 +105,35 @@ BOOL group_desc_table_init(){
 
 // block bitmap
 BOOL block_bitmap_init(){
-    if((disk=fopen(DISK,"rw"))==NULL){
+    if((disk=fopen(DISK,"r+"))==NULL){
         printf("block bitmap initialize faild!\n");
         return IS_FALSE;
     }else
-    {
+    {  
+        int i,j;
+        for(i = 0; i < 111; i++){
+            bmap[i] = 255;
+        }
+        bmap[111] = 0b11110000;
+        for(j = 0; j < 912; j++){
+            bmap[112+j] = 0x00;
+        }
+        // 我是怎么计算那些位该写０还是１的：
+        /* 首先我的文件系统块大小是1KB, 共1024块；
+        *   没有引导块；　超级块1KB , 块组描述符表1KB , 数据块位图1KB, inode位图1KB, inode节点表128B * 1024个inode;
+        *   所以还剩892个空闲数据块，需要892b也就是111B + 4b的１来表示空闲；所以在数据块位图block bitmap中需要111B的255(11111111)＋0b11110000来表示
+        *   空闲数据块；但是分配给block bitmap有1kB,　所以后面的912B用０来填充表示以占用，不能分配
+        */
+        fseek(disk,SUPER_BLOCK_LENGTH+GROUP_DESC_BLOCK_LENGTH,SEEK_SET);
+       if(fwrite(&bmap, sizeof(struct ext2_block_bitmap),1,disk)){
+            fclose(disk);
+            printf("block bitmap initialized!\n")
+            return IS_TRUE;
+       }else{
+           fclose(disk);
+           printf("block bitmap initialize faild!\n");
+           return IS_FALSE;
+       }
         
     }
     
@@ -115,12 +141,45 @@ BOOL block_bitmap_init(){
 
 // inode bitmap 
 BOOL inode_bitmap_init(){
-
+    if((disk=fopen(DISK,"r+"))==NULL){
+        printf("inode bitmap initialize faild!\n");
+        return IS_FALSE;
+    }else{
+        int i,j;
+        for(i=0; i<128; i++){
+            imap[i] = 255;  
+        }
+        for(j=0; j<896; j++){
+            imap[128+j] = 0;
+        }
+        /*  置位逻辑：共有1024个inode，所以只需要1024/8=128B, 而imap定义为 __u8 , 即1B,所以将前１２８Ｂ置位；但是inode bitmap分配1KB
+        *   所以后896B需要清零，表示不能分配
+        */
+       fseek(disk,SUPER_BLOCK_LENGTH+GROUP_DESC_BLOCK_LENGTH+BLOCK_INDEX_BMP_SIZE,SEEK_CUR);
+       if(fwrite(&imap,sizeof(struct ext2_inode_bitmap),1,disk)){
+            fclose(disk);
+            printf("inode bitmap initialized!\n");
+       }else{
+           fclose(disk);
+           printf("inode bitmap initialize faild!\n");
+       }
+       
+    }
 }
 
-// get free block 
+// get free block; 通过查找block bitmap获取第一个空闲数据块块号(从0开始编号)，以块位单位分配，返回数据块编号
 __u16 get_free_block(){
-
+    __u32 index = SUPER_BLOCK_LENGTH+GROUP_DESC_BLOCK_LENGTH;
+    __u32 cur = index;
+    printf("search for free block...\n");
+    if((disk=fopen(DISK,"r+"))==NULL){
+        fseek(disk,cur,SEEK_SET);
+        for(;cur < BIT_MAP_SIZE*8){
+            __u8 cur_char = fgetc(disk);
+            if(cur_char == 255)
+            ////////////////////////////////////////
+        }
+    }
 }
 
 // set free block
