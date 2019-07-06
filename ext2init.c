@@ -176,30 +176,174 @@ __u16 get_free_block(){
         fseek(disk,cur,SEEK_SET);
         for(;cur < BIT_MAP_SIZE*8){
             __u8 cur_char = fgetc(disk);
-            if(cur_char == 255)
-            ////////////////////////////////////////
+            if(cur_char == 255){ //　这里有待理解
+                cur += 8; 
+            }else{
+                while (cur_char &0x80)
+                {
+                    cur_char = cur_char << 1;
+                    ++cur;
+                }
+                printf("cur index = %d\n",cur);
+                printf("first free block munber: %d",cur-index);
+                fclose(disk);
+                return cur-index;
+            }
+        }
+        printf("search free block failed!\n");
+        fclose(disk);
+        return 0;
+    }
+    printf("search free block failed!\n");
+    fclose(disk);
+    return 0;
+}
+
+// set free block,设置块位图，默认0号块
+BOOL set_block_bitmap(int offset, int value){
+    if(offset >= BIT_MAP_SIZE){
+        printf("segment fault!\n");
+        return IS_FALSE;
+    }
+    __u32 index = SUPER_BLOCK_LENGTH+GROUP_DESC_BLOCK_LENGTH;
+    __u32 cur = index + offset/8;
+    // 先取出要设置的位置和设置值对比，如果不同则设置，相同则置位
+    if((disk=fopen(DISK,"r+")) != NULL){
+        fseek(disk,cur,SEEK_SET);
+        __u8 cur_char = fgetc(disk);
+        __u8 tmp_char;
+        if(offset % 8){
+            tmp_char = cur_char >> (8 - offset%8 +1);
+            cur_char = cur_char << (offset%8 - 1);
+        }
+        __u8 cur_bit = cur_char & 0x80;
+        // 如果欲置位和当前位不同则置位
+        if(value^cur_bit == 1){
+            cur_char = value;
+        }else{
+            fclose(disk);
+            printf("block bitmap set error!\n");
+            return IS_FALSE;
+        }
+        if(offset%8){
+            cur_char = cur_char >> (offset%8 -1 );
+            tmp_char = tmp_char << (8 - offset%8 + 1);
+            cur_char = cur_char + tmp_char;
+        }
+        // 写回磁盘； 且重新寻址
+        fseek(disk,cur,SEEK_SET);
+        if(fputc(cur_char,disk) != EOF){
+            printf("set block bitmap!\n");
+            super_block.s_free_blocks_count--; //表示的是申请一个block成功后，相应空闲块数-1
+            group_desc_table.GDT.bg_free_block_count--;
+            fclose(disk);
+            return IS_FALSE;
+        }
+    } 
+    fclose(disk);
+    printf("set block bitmap faild!\n");
+    return IS_FALSE;
+}
+
+// get free inode; 在创建新文件时会调用
+__u16 get_free_inode(){
+    __u32 index = SUPER_BLOCK_LENGTH+GROUP_DESC_BLOCK_LENGTH+BIT_MAP_SIZE;
+    __u32 cur = index;
+    if((disk=fopen(DISK,"r+")) != NULL){
+        fseek(disk,cur,SEEK_SET);
+        printf("free inode searching...\n");
+        for(; cur < INDEX_MAP_SIZE*8; ){
+            __u8 cur_char = fgetc(disk);
+            if(cur_char == 255){
+                cur += 8;
+            }else{
+                while (cur_char & 0x80)
+                {
+                    cur_char = cur_char << 1;
+                    ++cur;
+                }
+                // 找到第一个空闲inode
+                fclose(disk);
+                printf("first free inode number: %d\n",cur-index);
+                return cur-index;     
+            }
+        }
+        fclose(disk);
+        printf("inode search failed!\n");
+        return 0;
+    }
+    fclose(disk);
+    printf("inode search failed!\n");
+    return 0;
+}
+
+//set inode bitmap
+BOOL set_inode_bitmap(int offset, int value){
+    // 越界检查
+    if(offset >= INDEX_MAP_SIZE){
+        printf("inode bitmap segment fault!\n");
+        return IS_FALSE;
+    }
+    // 从inode bitmap中检查
+    __u32 index = SUPER_BLOCK_LENGTH+GROUP_DESC_BLOCK_LENGTH+BLOCK_INDEX_BMP_SIZE;
+    __32 cur = index + offset/8;
+    // 取出位图对应位，和欲设置的对比
+    if((disk=fopen(DISK,"r+")) != NULL){
+        fseek(disk,cur,SEEK_SET);
+        __u8 cur_char = fgetc(disk);
+        __u8 tmp_char;
+        if(offset%8){
+            tmp_char = cur_char >> (8 - offset%8 + 1);
+            cur_char = cur_char << (offset%8 - 1);
+        }
+        __u8 cur_bit = cur_char & 0x80;
+        if(value^cur_bit == 1){
+            cur_char = value;
+        }else{
+            fclose(disk);
+            printf("set inode bitmap failed!\n");
+            return IS_FALSE;
+        }
+
+        if(offset%8){
+            cur_char = cur_char >> (offset%8 - 1);
+            tmp_char = tmp_char << (8 - offset%8 + 1);
+            cur_char = cur_char + tmp_char;
+        }
+        //写回磁盘；重定位读写指针
+        fseek(disk,cur,SEEK_SET);
+        if(fputc(cur_char,disk) != EOF){
+            super_block.s_free_inodes_count--;
+            group_desc_table.GDT.bg_free_inode_count--;
+            fclose(disk);
+            printf("set inode bitmap!\n");
+            return IS_TRUE;
+        }else{
+            fclose(disk);
+            printf("set inode bitmap failed!\n");
+            return IS_FALSE;
         }
     }
 }
 
-// set free block
-BOOL set_block_bitmap(){
-
-}
-
-// get free inode
-__u16 get_free_inode(){
-
-}
-
-// BOOL set inode bitmap
-BOOL set_inode_bitmap(){
-
-}
-
 // check disk and alloc disk
 BOOL disk_alloc(){
+    FILE *fp;
+    if((fp=fopen(DISK,"r+")) == NULL){
+        fclose(fp);
+        printf("disk not exsit!\n");
+        return IS_FALSE;
+    }else{
+        fclose(fp);
+        printf("disk opend normally!\n");
+        return IS_TRUE;
+    }
+}
 
+// root inode
+BOOL root_inode_init(){
+    __u16 permit = 0x1111;
+    
 }
 
 // ext2 filesystem init
