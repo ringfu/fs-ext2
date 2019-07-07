@@ -8,9 +8,9 @@ struct ext2_group_desc_table group_desc_table;
 struct ext2_block_bitmap bmap;
 struct ext2_inode_bitmap imap;
 struct ext2_inode_table inode_table;
-struct ext2_inode inode_root;
+struct ext2_inode disk_dir; //根目录 / 
 
- FILE *disk;
+FILE *disk;
 
 // super block init
 BOOL super_block_init(){
@@ -342,11 +342,177 @@ BOOL disk_alloc(){
 
 // root inode
 BOOL root_inode_init(){
+    /*  disk_dir 是 "/" 系统根目录inode
+    *       disk_entry 是系统根目录项
+    *       disk_cur_dir_entry
+    *   root_dir 是 "root" rooty用户目录inode
+    *       root_entry 是root用户目录项
+    */
+    // 定义根目录的权限
     __u16 permit = 0x1111;
-    
+    disk_dir.i_type = DIR_FILE;
+    disk_dir.i_mode = permit;
+    disk_dir.i_uid = 0;                // 文件拥有者0
+
+    // 获取当前时间戳
+    __u32 current_time; 
+    time_t t = time(NULL);
+    current_time = time(&t);
+    disk_dir.i_atime = current_time;
+    disk_dir.i_ctime = current_time;
+    disk_dir.i_mtime = current_time;
+    disk_dir.i_dtime = 0xFFFF;
+
+    disk_dir.i_gid = 0;                        // 文件用户组标识符
+    disk_dir.i_links_count = 2;                // 硬链接计数，初始值为0，创建root目录之后为1
+    disk_dir.i_blocks = 1;                     // 文件所占块数，初始化为1
+    disk_dir.i_size = 2;
+    disk_dir.i_flags = 3;                      // 设置文件打开方式为读写
+    disk_dir.i_block[0] = 0;
+
+    // 设置索引位图当中的某一位
+    // 获取第一个inode节点，讲其编号为1，注意，inode节点编号为0的不用
+    // 设置索引位图当中的某一位_
+    __u16 disk_inode_number = get_one_free_index_bitmap(); // "/" inode节点
+    if(disk_inode_number && set_block_bitmap(disk_inode_number,BLOCK_INDEX_IN_USE,0)){
+    // "/" 目录项结构
+    struct ext2_dir_entry_2 disk_entry;
+    disk_entry.inode = disk_inode_number;
+    disk_entry.rec_len = 256;
+    disk_entry.file_type = DIR_FILE;
+    strcpy(disk_entry.name, "/");
+    disk_entry.name_len = 1;
+
+    // 设置"/"目录中 "." (当前目录) 目录项结构
+    struct ext2_dir_entry_2 disk_cur_dir_entry, disk_parent_dir_entry;
+    disk_cur_dir_entry.inode = disk_inode_number; 
+    disk_cur_dir_entry.rec_len = 256;
+    disk_cur_dir_entry.file_type = DIR_FILE;
+    strcpy(disk_cur_dir_entry.name, ".");
+    disk_cur_dir_entry.name_len = 1;
+    // 设置"/"目录中 ".." (父目录)目录项结构
+    disk_parent_dir_entry.inode = disk_inode_number;
+    disk_parent_dir_entry.rec_len = 256;
+    disk_parent_dir_entry.file_type = DIR_FILE;
+    strcpy(disk_parent_dir_entry.name, "..");
+    disk_parent_dir_entry.name_len = 2;
+
+    // 创建根目录"/"中 root 用户目录 "/root" iNode
+    __u16 root_inode_number = get_free_inode();
+    // 测试 root inode是否申请成功
+    if(root_inode_number && set_inode_bitmap(root_inode_init,BLOCK_INDEX_IN_USE,0)){
+        struct ext2_inode root_dir; // root目录inode节点
+        root_dir.i_type = 0x1111; // 文件类型
+        root_dir.i_mode = permit;
+        root_dir.i_uid = 1; //所属用户id
+
+        //time
+        __u32 root_dir_time;
+        time_t tmp = time(NULL);
+        root_dir_time = time(&tmp);
+        root_dir.i_atime = root_dir_time;
+        root_dir.i_ctime = root_dir_time;
+        root_dir.i_mtime = root_dir_time;
+        root_dir.i_dtime = 0xffff;
+
+        root_dir.i_gid = 0; // 组编号
+        root_dir.i_links_count = 2; // 连接计数: 父目录中 . .. 
+        root_dir.i_block = 1; // 所占数据块数
+        root_dir.i_size = 2;
+        root_dir.i_flags = 3; 
+        root_dir.i_block[0] = 1;  //占用的数据块编号
+        
+        // 由于root目录的存在，"/"inode中需要修改如下
+        disk_dir.i_size++;
+        disk_dir.i_links_count++;
+
+        // root目录中 ".", ".." 当前目录和父目录
+        struct ext2_dir_entry_2 root_entry; //root目录结构体
+        root_entry.inode = root_inode_number;
+        root_entry.rec_len = 256;
+        root_entry.file_type = DIR_FILE;
+        strcpy(root_entry.name, "root"); //root目录名
+        root_entry.name_len = 4;
+
+        // root目录中 ".", ".." 目录项结构
+        // "." 
+        struct ext2_dir_entry_2 root_cur_dir_entry, root_parent_dir_entry;
+        root_cur_dir_entry.inode = root_inode_number;
+        root_cur_dir_entry.rec_len = 256;
+        root_cur_dir_entry.file_type = DIR_FILE;
+        strcpy(root_cur_dir_entry.name, ".");
+        root_cur_dir_entry.name_len = 1;
+        // ".."
+        root_parent_dir_entry.inode = disk_inode_number; //root目录的父目录inode节点号
+        root_parent_dir_entry.rec_len = 256;
+        root_parent_dir_entry.file_type = DIR_FILE;
+        strcpy(root_parent_dir_entry.name, "..");
+        root_parent_dir_entry.name_len = 2;
+
+        // 将 "/" 和 "root" inode节点和目录结构写回磁盘；
+        if((disk=fopen(DISK, "r+")) != NULL)
+            // 写入根节点和root目录的inode
+            fseek(disk,FIRST_INODE_BLOCK*EVERY_BLOCK+OUT_INODE_LENGTH*(disk_inode_number - 1),SEEK_SET);
+            fwrite(&disk_dir, OUT_INODE_LENGTH, 1, disk);
+            fseek(disk,FIRST_INODE_BLOCK*EVERY_BLOCK+OUT_INODE_LENGTH*(root_inode_number - 1),SEEK_SET);
+            fwrite(&root_dir, OUT_INODE_LENGTH,1,disk);
+
+            // 写入根节点和root目录的dentry目录结构
+            // "/" 目录项
+            fseek(disk,FIRST_DATA_BLOCK*EVERY_BLOCK,SEEK_SET);
+            fwrite(&disk_entry,DIR_DENTRY_LENGTH,1,disk);
+            // "/." 目录项
+            fseek(disk,EVERY_BLOCK,SEEK_CUR);
+            fwrite(&disk_cur_dir_entry,DIR_DENTRY_LENGTH,1,disk);
+            // "/.."目录项
+            fseek(disk,DIR_DENTRY_LENGTH,SEEK_CUR);
+            fwrite(&disk_parent_dir_entry,DIR_DENTRY_LENGTH,1,disk);
+
+            // "root"目录项
+            fseek(disk,(FIRST_DATA_BLOCK+1)*EVERY_BLOCK,SEEK_SET);
+            fwrite(&root_entry,DIR_DENTRY_LENGTH,1,disk);
+            // "root/."目录项
+            fseek(disk,DIR_DENTRY_LENGTH,SEEK_CUR);
+            fwrite(&root_cur_dir_entry,DIR_DENTRY_LENGTH,1,disk);
+            // "root/.."目录项
+            fseek(disk,DIR_DENTRY_LENGTH,SEEK_CUR);
+            fwrite(&root_parent_dir_entry,DIR_DENTRY_LENGTH,1,disk);
+
+            // 设置数据块位图和inode位图被占用标志位
+            // 设置数据块被占用的标志
+            printf("空闲块数目：%d\n", get_one_free_block_bitmap());
+            set_one_bit_of_block_bitmap(FIRST_DATA_BLOCK + 1, BLOCK_INDEX_IN_USE, 0);
+            printf("空闲块数目：%d\n", get_one_free_block_bitmap());
+            set_one_bit_of_block_bitmap(FIRST_DATA_BLOCK + 2, BLOCK_INDEX_IN_USE, 0);
+            printf("空闲块数目：%d\n", get_one_free_block_bitmap());
+
+            fclose(disk);
+            printf("/ and root dir initialized!\n");
+            printf("\n / inode number: %d\n", disk_inode_number);
+            printf("\n root inode number: %d\n",root_inode_number);
+        }else{
+            fclose(disk);
+            printf("/ and root dir initialize failed!\n");
+            return IS_FALSE;
+        }
+    }
 }
 
-// ext2 filesystem init
+// ext2 重要结构体初始化成功
 BOOL ext2fs_init{
-       
+       if(super_block_init()){
+           printf("超级块初始化成功!\n");
+       }
+       if(group_desc_table_init()){
+           printf("组块描述符表初始化成功!\n");
+       }
+       if(block_bitmap_init()){
+           printf("数据块位图初始化成功!\n");
+       }
+       if(inode_bitmap_init()){
+           printf("索引节点表初始化成功!\n");
+       }
+       if(root_inode_init()){
+           printf("根目录及root目录初始化成功!\n");
+       }
 }

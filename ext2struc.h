@@ -18,7 +18,7 @@
 #define DIR_FILE        2   //　目录文件
 
 // #define BLOCK_FILE      4   //
-// #define CHAR_FILE       8
+// #define CHAR_FILE       8 
 // #define SOCKET_FILE     16
 // #define SYMBOL_FILE     32
 // #define FIFO_FILE       64
@@ -168,7 +168,7 @@ struct ext2_inode {
     union
     {  				 
                    /* 特定操作系统的信息*/
-        __u32 i_block[EXT2_N_BLOCKS];   /* 指向数据块的指针数组 */
+        __u32 i_block[EXT2_N_BLOCKS];   /* 指向数据块的指针数组；可能一个文件会占用多个数据块 */
         __u32 i_version;	  	        /* 文件的版本号（用于 NFS） */
         __u32 i_file_acl; 		        /* 文件访问控制表（已不再使用） */
         __u32 i_dir_acl;	 	        /* 目录访问控制表（已不再使用）*/
