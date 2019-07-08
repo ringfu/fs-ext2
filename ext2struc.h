@@ -4,6 +4,9 @@
 #define DIR_IS_TRUE 1 //磁盘状态
 #define DIR_IS_FALSE 0
 
+#define IS_TRUE 1
+#define IS_FALSE 0
+
 // 硬盘设置
 #define DISK "/home/ringfu/Linux/ext2"
 // 文件系统的状态
@@ -152,6 +155,8 @@ struct ext2_inode_bitmap{
 
 // 外存索引节点，128个字节; 共分配1024个inode
 struct ext2_inode {	
+    //在真实文件系统中文件类型和权限由 i_mode　一个参数确定
+    // 这里为了方便，设置两个参数i_type表示文件类型，i_mode表示文件权限
     __u16 i_mode; 			        /* 文件类型和访问权限 */
     __u16 i_type;                   /* 文件类型*/
     __u16 i_mode;                   /* 文件访问权限*/

@@ -1,38 +1,22 @@
 //　文件操作功能实现
 #include<system.h>
 #include "ext2struc.h"
+#include "dentry.h"
+#include "ext2init.h"
 
-void ext2_mkdir(){
+BOOL creatFile(char* filename,__u8 type, char* cur_path);
 
-}
+BOOL deleteFile(char* filename, char* cur_path);
 
-void ext2_ls(){
+BOOL listFile(char* cur_path);
 
-}
+BOOL changePath(char* cur_path, char* aim_path);
 
-void ext2_rm(){
+BOOL readFile(char* filename, char* cur_path);
 
-}
+BOOL openFile(char* filename, char* cur_path);
 
-void ext2_open(){
-
-}
-
-void ext2_touch(){
-
-}
-
-void ext2_cat(){
-
-}
-
-void ext2_clear(){
-
-}
-
-void ext2_exit(){
-    exit();
-}
+BOOL writeFile(char* filename, char* cur_path);
 /*
 
 待实现的功能：

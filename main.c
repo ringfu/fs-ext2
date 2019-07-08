@@ -4,7 +4,7 @@
 #include <string.h>
 #include "ext2struch" //定义了程序中用到的数据结构
 #include "ext2init.h"
-
+#include "fileopt.h"
 int main(){
 	// define structure
     //...
@@ -14,6 +14,7 @@ int main(){
         ext2fs_init();
     
     }
+    funcsel();
 
     return 0;
 }　
