@@ -1,3 +1,5 @@
+#ifndef __FILEOPT_H
+#define __FILEOPT_H
 //　文件操作功能实现
 //#include<system.h>
 #include "ext2struc.h"
@@ -52,3 +54,5 @@ BOOL changeFile(char* current, char* filename);
 
 9. exit 调用 break　退出死循环
 */
+
+#endif

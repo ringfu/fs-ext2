@@ -1,6 +1,7 @@
 //　文件系统功能选择：cd, ls, mkdir, cat, open, exit, touch, rm, echo 
 
-#include "print.h"
+#include "funcsel.h"
+#include "fileopt.h"
 
 void funcsel(char* cur_path)
 {
@@ -13,48 +14,53 @@ void funcsel(char* cur_path)
         if (0 == strcmp(command, MKDIR))
         {   
             scanf("%s", list);
-            ext2_mkdir(list, DIR_FILE, current);  // 创建目录
+            creatFile(list, DIR_FILE, cur_path);  // 创建目录
             continue;
         }
-        if (0 == strcmp(command, TOUCH))
-        {
-            scanf("%s", list);
-            ext2_touch(list, ORDINARY_FILE, current); // 创建空白文件
-            continue;
-        }
+        // if (0 == strcmp(command, TOUCH))
+        // if(0 == strcmp(command,TOUCH))
+        // {
+        //     scanf("%s",list);
+        //     creatFile(list,ORDINARY_FILE,cur_path);
+        //     continue;
+        // }
+        //     scanf("%s", list);
+        //     creatFile(list, ORDINARY_FILE,cur_path) // 创建空白文件
+        //     continue;
+        // }
         if (0 == strcmp(command, LS))
         {
-            ext2_ls(current);
+            listFile(cur_path);
             continue;
         }
         if (0 == strcmp(command, CD))
         {
             scanf("%s", list);
-            ext2_cd(current, list);
+            changePath(cur_path, list);
             continue;
         }
         if (0 == strcmp(command, RM))
         {
             scanf("%s", list);
-            ext2_rm(list, current);
+            deleteFile(list, cur_path);
             continue;
         }
         if (0 == strcmp(command, CAT))
         {
             scanf("%s", list);
-            ext2_cat(list, current);
+            readFile(list, cur_path);
             continue;
         }
-        if (0 == strcmp(command, ECHO))
-        {
-            scanf("%s", list);
-            ext2_echo(list, current);
-            continue;
-        }
+        // if (0 == strcmp(command, ECHO))
+        // {
+        //     scanf("%s", list);
+        //     ext2_echo(list, cur_path);
+        //     continue;
+        // }
         if (0 == strcmp(command, OPEN))
         {
             scanf("%s", list);
-            ext2_open(list, current);
+            openFile(list, cur_path);
             continue;
         }
         if (0 == strcmp(command, EXIT))

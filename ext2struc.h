@@ -1,3 +1,5 @@
+#ifndef __EXT2STRUC_H
+#define __EXT2STRUC_H
 #include "datatype.h"
 // 文件系统结构体定义
 
@@ -159,7 +161,7 @@ struct ext2_inode {
     // 这里为了方便，设置两个参数i_type表示文件类型，i_mode表示文件权限
     __u16 i_mode; 			        /* 文件类型和访问权限 */
     __u16 i_type;                   /* 文件类型*/
-    __u16 i_mode;                   /* 文件访问权限*/
+    //__u16 i_mode;                   /* 文件访问权限*/
 	__u16 i_uid;				    /* 文件拥有者标识号*/
 	__u32 i_size; 				    /* 以字节计的文件大小 */
 	__u32 i_atime; 			        /* 文件的最后一次访问时间 */
@@ -202,3 +204,5 @@ struct ext2_dir_entry_2 {
 
 
 //#endif
+
+#endif

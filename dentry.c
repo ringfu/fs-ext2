@@ -1,8 +1,13 @@
 #include "dentry.h"
+#include"datatype.h"
+#include "datatype.h"
+#include "ext2init.h"
+#include "ext2struc.h"
 char delims[] = "/"; //　分隔符
+FILE *file_disk;
 // 根据目录找到文件所在节点
-__u32 findInodeByName(char filename[]){
-    FILE *file_disk;
+__u16 findInodeByName(char filename[]){
+    
     __u16 final_inode;
     if(0 == strcmp(filename, "/")){
         return 2;
@@ -54,7 +59,8 @@ __u32 findInodeByName(char filename[]){
                 }
             }
             fclose(file_disk);
-            return 0;
+            return IS_FALSE;
         }
-        return 0;
+        return IS_FALSE;
+    }
 }

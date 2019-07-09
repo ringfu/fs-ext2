@@ -1,3 +1,5 @@
+#ifndef __EXT2INIT_H
+#define __EXT2INIT_H
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
@@ -41,3 +43,5 @@ BOOL root_inode_init();
 
 // ext2 filesystem init
 BOOL ext2fs_init();
+
+#endif

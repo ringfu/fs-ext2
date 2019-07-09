@@ -1,6 +1,9 @@
 {
     "files.associations": {
-        "funcsel.h": "c"
+        "funcsel.h": "c",
+        "fileopt.h": "c",
+        "datatype.h": "c",
+        "stddef.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

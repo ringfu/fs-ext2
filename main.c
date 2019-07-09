@@ -19,4 +19,4 @@ int main(){
         printf("disk err!\n");
     }
     return 0;
-}　
+}

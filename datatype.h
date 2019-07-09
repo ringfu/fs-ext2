@@ -1,7 +1,7 @@
 // 重新定义相关的数据类型
 #ifndef __DATATYPE_H__
 #define __DATATYPE_H__
-
+#include<stddef.h>
 typedef unsigned long __u64;
 typedef unsigned int __u32;
 typedef signed int __s32;

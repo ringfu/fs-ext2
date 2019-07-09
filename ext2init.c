@@ -18,7 +18,7 @@ BOOL super_block_init(){
     super_block.s_inodes_count = 1024;          // 索引节点总数
     super_block.s_blocks_count = 1024;          // 文件系统总块数
     super_block.s_r_blocks_count = 8;          // 为超级块保留的块数    
-    super_block.s_free_blocks_count = 892;     // 1024(总块数)-1(超级块)-1(GDT)-1(block bitmap)-1(inode bitmap)-128(inode table)空闲物理块数
+    super_block.s_free_blocks_count = 892;     // 1024(总块数)-1(超级块)-1(GDT[1])-1(block bitmap)-1(inode bitmap)-128(inode table)空闲物理块数
     super_block.s_free_inodes_count = 1024;     // 空闲索引节点总数
     super_block.s_log_block_size = 0;           // 每一块的大小，此处为1024k
     super_block.s_first_data_block = FIRST_DATA_BLOCK;         // 文件系统中的第一个数据块, inode节点需要128个磁盘块，故开始的数据块为1+1+1+128 = 131块
@@ -77,27 +77,29 @@ BOOL super_block_init(){
 
 // group descriptor block
 BOOL group_desc_table_init(){
-    group_desc_table.GDT.bg_block_bitmap = 3;             // 块位图所在块号
-    group_desc_table.GDT.bg_inode_bitmap = 4;             // 索引节点位图所在块号        group_desc_table.bg_inode_table = 5;              // 组中索引节点表的首块号
-    group_desc_table.GDT.bg_free_blocks_count = 892;      // TODO 组中空闲块数
-    group_desc_table.GDT.bg_free_inodes_count = 1024;     // TODO 组中空闲节点数目
-    group_desc_table.GDT.bg_used_dirs_count = 64;         // TODO 组中分配给目录的节点数目
-    group_desc_table.bg_pad = 0                      // 填充，对齐到字
+    group_desc_table.GDT[1].bg_block_bitmap = 3;             // 块位图所在块号
+    group_desc_table.GDT[1].bg_inode_bitmap = 4;             // 索引节点位图所在块号        group_desc_table.bg_inode_table = 5;              // 组中索引节点表的首块号
+    group_desc_table.GDT[1].bg_free_blocks_count = 892;      // TODO 组中空闲块数
+    group_desc_table.GDT[1].bg_free_inodes_count = 1024;     // TODO 组中空闲节点数目
+    group_desc_table.GDT[1].bg_used_dirs_count = 64;         // TODO 组中分配给目录的节点数目
+    group_desc_table.GDT[1].bg_pad = 0;
+    //group_desc_table.padding;
+                          // 填充，对齐到字
     
     if((disk=fopen(DISK,"r+"))==NULL){
-        printf("GDT initialize faild!\n");
+        printf("GDT[1] initialize faild!\n");
         return IS_FALSE;
     }else
     {
         fseek(disk,SUPER_BLOCK_LENGTH,SEEK_SET);
         if(fwrite(&group_desc_table,sizeof(struct ext2_group_desc_table),1,disk)){
             fclose(disk);
-            printf("GDT initialized!\n");
+            printf("GDT[1] initialized!\n");
             return IS_TRUE;
         }else
         {
             fclose(disk);
-            printf("GDT initialize failed!\n");
+            printf("GDT[1] initialize failed!\n");
             return IS_FALSE;
         }
     }
@@ -112,11 +114,11 @@ BOOL block_bitmap_init(){
     {  
         int i,j;
         for(i = 0; i < 111; i++){
-            bmap[i] = 255;
+            bmap.block_bitmap[i] = 255;
         }
-        bmap[111] = 0b11110000;
+        bmap.block_bitmap[111] = 0b11110000;
         for(j = 0; j < 912; j++){
-            bmap[112+j] = 0x00;
+            bmap.block_bitmap[112+j] = 0x00;
         }
         // 我是怎么计算那些位该写０还是１的：
         /* 首先我的文件系统块大小是1KB, 共1024块；
@@ -127,7 +129,7 @@ BOOL block_bitmap_init(){
         fseek(disk,SUPER_BLOCK_LENGTH+GROUP_DESC_BLOCK_LENGTH,SEEK_SET);
        if(fwrite(&bmap, sizeof(struct ext2_block_bitmap),1,disk)){
             fclose(disk);
-            printf("block bitmap initialized!\n")
+            printf("block bitmap initialized!\n");
             return IS_TRUE;
        }else{
            fclose(disk);
@@ -147,10 +149,10 @@ BOOL inode_bitmap_init(){
     }else{
         int i,j;
         for(i=0; i<128; i++){
-            imap[i] = 255;  
+            imap.inode_bitmap[i] = 255;  
         }
         for(j=0; j<896; j++){
-            imap[128+j] = 0;
+            imap.inode_bitmap[128+j] = 0;
         }
         /*  置位逻辑：共有1024个inode，所以只需要1024/8=128B, 而imap定义为 __u8 , 即1B,所以将前１２８Ｂ置位；但是inode bitmap分配1KB
         *   所以后896B需要清零，表示不能分配
@@ -174,7 +176,7 @@ __u16 get_free_block(){
     printf("search for free block...\n");
     if((disk=fopen(DISK,"r+"))==NULL){
         fseek(disk,cur,SEEK_SET);
-        for(;cur < BIT_MAP_SIZE*8){
+        for(;cur < BIT_MAP_SIZE*8; ){
             __u8 cur_char = fgetc(disk);
             if(cur_char == 255){ //　这里有待理解
                 cur += 8; 
@@ -235,7 +237,7 @@ BOOL set_block_bitmap(int offset, int value){
         if(fputc(cur_char,disk) != EOF){
             printf("set block bitmap!\n");
             super_block.s_free_blocks_count--; //表示的是申请一个block成功后，相应空闲块数-1
-            group_desc_table.GDT.bg_free_block_count--;
+            group_desc_table.GDT[1].bg_free_blocks_count--;
             fclose(disk);
             return IS_FALSE;
         }
@@ -286,7 +288,7 @@ BOOL set_inode_bitmap(int offset, int value){
     }
     // 从inode bitmap中检查
     __u32 index = SUPER_BLOCK_LENGTH+GROUP_DESC_BLOCK_LENGTH+BLOCK_INDEX_BMP_SIZE;
-    __32 cur = index + offset/8;
+    __u32 cur = index + offset/8;
     // 取出位图对应位，和欲设置的对比
     if((disk=fopen(DISK,"r+")) != NULL){
         fseek(disk,cur,SEEK_SET);
@@ -314,7 +316,7 @@ BOOL set_inode_bitmap(int offset, int value){
         fseek(disk,cur,SEEK_SET);
         if(fputc(cur_char,disk) != EOF){
             super_block.s_free_inodes_count--;
-            group_desc_table.GDT.bg_free_inode_count--;
+            group_desc_table.GDT[1].bg_free_inodes_count--;
             fclose(disk);
             printf("set inode bitmap!\n");
             return IS_TRUE;
@@ -373,8 +375,8 @@ BOOL root_inode_init(){
     // 设置索引位图当中的某一位
     // 获取第一个inode节点，讲其编号为1，注意，inode节点编号为0的不用
     // 设置索引位图当中的某一位_
-    __u16 disk_inode_number = get_one_free_index_bitmap(); // "/" inode节点
-    if(disk_inode_number && set_block_bitmap(disk_inode_number,BLOCK_INDEX_IN_USE,0)){
+    __u16 disk_inode_number = get_free_inode(); // "/" inode节点
+    if(disk_inode_number && set_block_bitmap(disk_inode_number,BLOCK_INDEX_IN_USE)){
     // "/" 目录项结构
     struct ext2_dir_entry_2 disk_entry;
     disk_entry.inode = disk_inode_number;
@@ -382,6 +384,7 @@ BOOL root_inode_init(){
     disk_entry.file_type = DIR_FILE;
     strcpy(disk_entry.name, "/");
     disk_entry.name_len = 1;
+
 
     // 设置"/"目录中 "." (当前目录) 目录项结构
     struct ext2_dir_entry_2 disk_cur_dir_entry, disk_parent_dir_entry;
@@ -400,7 +403,7 @@ BOOL root_inode_init(){
     // 创建根目录"/"中 root 用户目录 "/root" iNode
     __u16 root_inode_number = get_free_inode();
     // 测试 root inode是否申请成功
-    if(root_inode_number && set_inode_bitmap(root_inode_init,BLOCK_INDEX_IN_USE,0)){
+    if(root_inode_number && set_inode_bitmap(root_inode_init,BLOCK_INDEX_IN_USE)){
         struct ext2_inode root_dir; // root目录inode节点
         root_dir.i_type = 0x1111; // 文件类型
         root_dir.i_mode = permit;
@@ -417,7 +420,7 @@ BOOL root_inode_init(){
 
         root_dir.i_gid = 0; // 组编号
         root_dir.i_links_count = 2; // 连接计数: 父目录中 . .. 
-        root_dir.i_block = 1; // 所占数据块数
+        root_dir.i_blocks = 1; // 所占数据块数
         root_dir.i_size = 2;
         root_dir.i_flags = 3; 
         root_dir.i_block[0] = 1;  //占用的数据块编号
@@ -480,11 +483,11 @@ BOOL root_inode_init(){
 
             // 设置数据块位图和inode位图被占用标志位
             // 设置数据块被占用的标志
-            printf("空闲块数目：%d\n", get_one_free_block_bitmap());
-            set_one_bit_of_block_bitmap(FIRST_DATA_BLOCK + 1, BLOCK_INDEX_IN_USE, 0);
-            printf("空闲块数目：%d\n", get_one_free_block_bitmap());
-            set_one_bit_of_block_bitmap(FIRST_DATA_BLOCK + 2, BLOCK_INDEX_IN_USE, 0);
-            printf("空闲块数目：%d\n", get_one_free_block_bitmap());
+            printf("空闲块数目：%d\n", get_free_block());
+            set_block_bitmap(FIRST_DATA_BLOCK + 1, BLOCK_INDEX_IN_USE);
+            printf("空闲块数目：%d\n", get_free_block());
+            set_block_bitmap(FIRST_DATA_BLOCK + 2, BLOCK_INDEX_IN_USE);
+            printf("空闲块数目：%d\n", get_free_block());
 
             fclose(disk);
             printf("/ and root dir initialized!\n");
@@ -499,7 +502,7 @@ BOOL root_inode_init(){
 }
 
 // ext2 重要结构体初始化成功
-BOOL ext2fs_init{
+BOOL ext2fs_init(){
        if(super_block_init()){
            printf("超级块初始化成功!\n");
        }
