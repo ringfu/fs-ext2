@@ -1,5 +1,5 @@
 //　文件操作功能实现
-#include<system.h>
+//#include<system.h>
 #include "ext2struc.h"
 #include "dentry.h"
 #include "ext2init.h"

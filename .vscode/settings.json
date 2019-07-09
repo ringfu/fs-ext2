@@ -1,6 +1,6 @@
 {
     "files.associations": {
-       
+        "funcsel.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
