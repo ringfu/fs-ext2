@@ -403,7 +403,7 @@ BOOL root_inode_init(){
     // 创建根目录"/"中 root 用户目录 "/root" iNode
     __u16 root_inode_number = get_free_inode();
     // 测试 root inode是否申请成功
-    if(root_inode_number && set_inode_bitmap(root_inode_init,BLOCK_INDEX_IN_USE)){
+    if(root_inode_number && set_inode_bitmap(root_inode_number,BLOCK_INDEX_IN_USE)){
         struct ext2_inode root_dir; // root目录inode节点
         root_dir.i_type = 0x1111; // 文件类型
         root_dir.i_mode = permit;

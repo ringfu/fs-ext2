@@ -12,6 +12,8 @@ BOOL deleteFile(char* filename, char* cur_path);
 
 BOOL listFile(char* cur_path);
 
+// void ext2_ls();
+
 BOOL changePath(char* cur_path, char* aim_path);
 
 BOOL readFile(char* filename, char* cur_path);

@@ -31,6 +31,7 @@ void funcsel(char* cur_path)
         if (0 == strcmp(command, LS))
         {
             listFile(cur_path);
+            // ext2_ls();
             continue;
         }
         if (0 == strcmp(command, CD))
@@ -80,4 +81,8 @@ void funcsel(char* cur_path)
 void clean()
 {
     system("clear");
+}
+
+void ext2_ls(){
+    system("ls");
 }
