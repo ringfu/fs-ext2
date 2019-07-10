@@ -16,7 +16,7 @@
 #define EXT2_IS_FALSE 0x0002      // 文件系统错误
 // inode节点指向设置，默认为9个直接地址，1个间接地址
 // 间接规定一个文件大小的最大值为9k + 256k
-// #define EXT2_N_BLOCKS 10 
+#define EXT2_N_BLOCKS 10 
 
 // 定义文件类型
 #define ORDINARY_FILE   1　 //普通文件

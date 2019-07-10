@@ -272,7 +272,9 @@ __u16 get_free_inode(){
             }else{
                 while ((cur_char & 0x80) == 0x00)
                 {
-                    cur_char = (cur_char << 1) | (cur_char >> (sizeof(__u8)); //循环左移
+                    // 循环左移，但是这样没有实现
+                    cur_char = (cur_char << 1) | (cur_char >> (sizeof(__u8)));
+                    //cur_char = (cur_char << 1) | (cur_char >> (sizeof(__u8)); //循环左移
                     ++cur;
                 }
                 // 找到第一个空闲inode
@@ -402,13 +404,14 @@ BOOL root_inode_init(){
 
     // 设置索引位图当中的某一位
     // 获取第一个inode节点，讲其编号为1，注意，inode节点编号为0的不用
+    
     // 设置索引位图当中的某一位
     
     __u16 disk_inode_number = get_free_inode(); // "/" inode节点
     //if(disk_inode_number && set_inode_bitmap(disk_inode_number,BLOCK_INDEX_IN_USE)){
     if(set_inode_bitmap(disk_inode_number,BLOCK_INDEX_IN_USE)){
     // "/" 目录项结构
-    printf("***************************    / entry ");
+    //printf("***************************    / entry ");
     struct ext2_dir_entry_2 disk_entry;
     disk_entry.inode = disk_inode_number;
     disk_entry.rec_len = 256;
