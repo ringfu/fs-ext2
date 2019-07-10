@@ -17,15 +17,10 @@ void funcsel(char* cur_path)
             creatFile(list, DIR_FILE, cur_path);  // 创建目录
             continue;
         }
-        // if (0 == strcmp(command, TOUCH))
         // if(0 == strcmp(command,TOUCH))
         // {
         //     scanf("%s",list);
         //     creatFile(list,ORDINARY_FILE,cur_path);
-        //     continue;
-        // }
-        //     scanf("%s", list);
-        //     creatFile(list, ORDINARY_FILE,cur_path) // 创建空白文件
         //     continue;
         // }
         if (0 == strcmp(command, LS))
@@ -52,12 +47,7 @@ void funcsel(char* cur_path)
             readFile(list, cur_path);
             continue;
         }
-        // if (0 == strcmp(command, ECHO))
-        // {
-        //     scanf("%s", list);
-        //     ext2_echo(list, cur_path);
-        //     continue;
-        // }
+
         if (0 == strcmp(command, OPEN))
         {
             scanf("%s", list);

@@ -16,13 +16,13 @@
 #define EXT2_IS_FALSE 0x0002      // 文件系统错误
 // inode节点指向设置，默认为9个直接地址，1个间接地址
 // 间接规定一个文件大小的最大值为9k + 256k
-#define EXT2_N_BLOCKS 10 
+// #define EXT2_N_BLOCKS 10 
 
 // 定义文件类型
 #define ORDINARY_FILE   1　 //普通文件
 #define DIR_FILE        2   //　目录文件
 
-// #define BLOCK_FILE      4   //
+// #define BLOCK_FILE      4   
 // #define CHAR_FILE       8 
 // #define SOCKET_FILE     16
 // #define SYMBOL_FILE     32
@@ -41,10 +41,10 @@
 #define BIT_MAP_SIZE 1024
 // 定义索引位图大小
 #define INDEX_MAP_SIZE 1024
-// 定义块位图和索引位图被使用标志
-#define BLOCK_INDEX_NOT_USE 0
-// 定义块位图和索引位图未被使用标志
-#define BLOCK_INDEX_IN_USE 1
+// 定义块位图和索引位图可用标志
+#define BLOCK_INDEX_NOT_USE 1 //为 1 表示可用
+// 定义块位图和索引位图不可用标志
+#define BLOCK_INDEX_IN_USE 0 //为 0 表示不可用，即被占用
 
 // 定义外存inode节点的长度
 #define OUT_INODE_LENGTH 128
